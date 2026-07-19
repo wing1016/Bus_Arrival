@@ -436,6 +436,8 @@ function App() {
         <p>Designed for Hong Kong commuters &copy; {new Date().getFullYear()}</p>
       </div>
     </div>
+
+    </div>
   );
 }
 
