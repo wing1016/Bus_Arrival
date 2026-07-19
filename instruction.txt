@@ -1,0 +1,34 @@
+WHAT: Objectives/Goals
+
+Build a responsive web to show next bus nearby, for live tracking of bus arrivals, user choose a Hong Kong bus number and user GPS location. With these information input/select by user, the application fetch live bus information from https://data.gov.hk/. Web show the choosen bus number next 3 arrival times. User read this live bus arrival information at home before they go to the bus station everyday morning before they to work. 
+
+
+WHAT: Users/Target 
+Hong Kong citizen who go to work by bus.
+
+ 
+WHY: ROI/Value
+User can choose the best time to go to the bus station.
+
+
+HOW: Technologies
+Frontend: Reaat.js and Tailwind CSS to build a responsive web application
+Gateway: Node.js Express, authentication with JWT to build the middleware for authentication, authorization and routing, protect the intelligence backend
+Intelligence: Python FastAPI, to connect powerful LLM to extract receipt details, generate insights
+
+Bus arrival date source reference
+https://data.gov.hk/tc-data/dataset/ctb-eta-transport-realtime-eta
+https://data.gov.hk/tc-data/dataset/hk-td-tis_21-etakmb
+Internet
+
+Additional information
+Do not put everything into one python file. Seprerate html, css, js, py files.
+Web page style please reference to apple(the iphone make) offical simple style
+Please confirm with me and wait for my answer if anything is unclear to you.
+Web page should be responsive. Can be shown in both computer and mobile device.
+
+Input Checking
+If user input a invalid Hong Kong bus number. please prompt an error message. 
+
+
+

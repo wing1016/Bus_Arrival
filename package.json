@@ -1,0 +1,12 @@
+{
+  "name": "vibe-bus-arrival",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend"
+  ],
+  "scripts": {
+    "dev": "echo \"Run individual dev scripts in each workspace\"",
+    "install": "npm install && cd backend && npm install && cd ../frontend && npm install"
+  }
+}
