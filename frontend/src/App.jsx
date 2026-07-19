@@ -10,6 +10,39 @@ const formatArrivalTime = (timeString) => {
   return `${normalizedHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`;
 };
 
+const getHongKongCurrentMinutes = () => {
+  const now = new Date();
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Hong_Kong',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(now);
+
+  const hour = Number(parts.find((part) => part.type === 'hour')?.value || 0);
+  const minute = Number(parts.find((part) => part.type === 'minute')?.value || 0);
+  return hour * 60 + minute;
+};
+
+const formatTimeLeft = (timeString) => {
+  const [hours, minutes] = timeString.split(':').map(Number);
+  const arrivalMinutes = hours * 60 + minutes;
+  const diffMinutes = arrivalMinutes - getHongKongCurrentMinutes();
+
+  if (diffMinutes <= 0) {
+    return 'Due now';
+  }
+
+  const hoursLeft = Math.floor(diffMinutes / 60);
+  const minutesLeft = diffMinutes % 60;
+
+  if (hoursLeft === 0) {
+    return `${minutesLeft} min`;
+  }
+
+  return minutesLeft === 0 ? `${hoursLeft} hr` : `${hoursLeft} hr ${minutesLeft} min`;
+};
+
 function App() {
   const [busNumber, setBusNumber] = useState('');
   const [arrivals, setArrivals] = useState([]);
@@ -277,7 +310,7 @@ function App() {
               className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
               disabled={locating || loading}
             >
-              {locating ? 'Detecting...' : 'Use Device Location'}
+              {locating ? 'Detecting...' : 'Detect Location'}
             </button>
           </div>
 
@@ -361,8 +394,9 @@ function App() {
             <table className="w-full table-fixed text-left text-sm">
               <thead className="bg-slate-50 text-slate-500">
                 <tr>
-                  <th className="px-4 py-3 font-medium">Operator</th>
+                  <th className="px-4 py-3 font-medium">Company</th>
                   <th className="px-4 py-3 font-medium">Bus Number</th>
+                  <th className="px-4 py-3 font-medium">Time Left</th>
                   <th className="px-4 py-3 font-medium">Arrival Time</th>
                 </tr>
               </thead>
@@ -371,6 +405,7 @@ function App() {
                   <tr key={index} className="text-slate-700">
                     <td className="px-4 py-3 font-medium">{operator || '-'}</td>
                     <td className="px-4 py-3">{busNumber.trim().toUpperCase()}</td>
+                    <td className="px-4 py-3">{formatTimeLeft(time)}</td>
                     <td className="px-4 py-3">{formatArrivalTime(time)}</td>
                   </tr>
                 ))}
