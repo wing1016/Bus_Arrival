@@ -312,30 +312,32 @@ function App() {
             </div>
           )}
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-slate-600">Pick location from map</p>
-              <button
-                type="button"
-                onClick={() => setIsMapOpen(true)}
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100"
-                disabled={loading}
-              >
-                Open Map
-              </button>
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
+            <div className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <p className="text-sm text-slate-600">Pick location from map</p>
+                <button
+                  type="button"
+                  onClick={() => setIsMapOpen(true)}
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100"
+                  disabled={loading}
+                >
+                  Open Map
+                </button>
+              </div>
+              <p className="mt-2 text-xs text-slate-500">
+                Tap a point on the map to select location. The map window will close automatically.
+              </p>
             </div>
-            <p className="mt-2 text-xs text-slate-500">
-              Tap a point on the map to select location. The map window will close automatically.
-            </p>
-          </div>
 
-          <button
-            type="submit"
-            className="w-full rounded-2xl bg-slate-900 px-6 py-3 text-[15px] font-medium text-white shadow-sm transition hover:bg-slate-700 disabled:bg-slate-300"
-            disabled={loading || !busNumber.trim()}
-          >
-            {loading ? <span className="animate-spin">Searching...</span> : 'Search'}
-          </button>
+            <button
+              type="submit"
+              className="min-h-[5.5rem] w-full rounded-2xl bg-slate-900 px-6 py-3 text-[15px] font-medium text-white shadow-sm transition hover:bg-slate-700 disabled:bg-slate-300 sm:w-28 sm:self-stretch"
+              disabled={loading || !busNumber.trim()}
+            >
+              {loading ? <span className="animate-spin">Searching...</span> : 'Search'}
+            </button>
+          </div>
         </form>
       </div>
 
@@ -355,13 +357,26 @@ function App() {
               <p className="text-sky-700">Distance: {nearestStopInfo.distanceKm} km</p>
             </div>
           )}
-          <ol className="space-y-2">
-            {arrivals.map((time, index) => (
-              <li key={index} className="text-lg text-gray-700">
-                {formatArrivalTime(time)}
-              </li>
-            ))}
-          </ol>
+          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+            <table className="w-full table-fixed text-left text-sm">
+              <thead className="bg-slate-50 text-slate-500">
+                <tr>
+                  <th className="px-4 py-3 font-medium">Operator</th>
+                  <th className="px-4 py-3 font-medium">Bus Number</th>
+                  <th className="px-4 py-3 font-medium">Arrival Time</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100">
+                {arrivals.map((time, index) => (
+                  <tr key={index} className="text-slate-700">
+                    <td className="px-4 py-3 font-medium">{operator || '-'}</td>
+                    <td className="px-4 py-3">{busNumber.trim().toUpperCase()}</td>
+                    <td className="px-4 py-3">{formatArrivalTime(time)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
