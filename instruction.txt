@@ -24,7 +24,8 @@ Internet
 Additional information
 Do not put everything into one python file. Seprerate html, css, js, py files.
 Web page style please reference to apple(the iphone make) offical simple style
-Please confirm with me and wait for my answer if anything is unclear to you.
+Please confirm with me and wait for my answer if anything is unclear to you. 
+If i didn't answer, please ask me again until I have answer.
 Web page should be responsive. Can be shown in both computer and mobile device.
 
 Input Checking
