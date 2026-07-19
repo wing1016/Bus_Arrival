@@ -275,21 +275,22 @@ function App() {
   };
 
   return (
-    <div className="max-w-2xl mx-auto p-4 font-sans">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 to-slate-100 text-slate-900">
+      <div className="max-w-2xl mx-auto p-4 font-sans">
       <div className="mb-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">Vibe Bus Arrival</h1>
-          <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-4 py-2 text-[13px] font-medium tracking-[0.15em] text-slate-600 shadow-[0_8px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm sm:shrink-0">
+          <h1 className="text-3xl font-bold text-slate-900">Vibe Bus Arrival</h1>
+          <div className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 text-[13px] font-medium tracking-[0.15em] text-slate-700 shadow-[0_8px_24px_rgba(15,23,42,0.10)] backdrop-blur-sm sm:shrink-0">
             <span className="text-[11px] uppercase tracking-[0.24em] text-slate-400">HK</span>
             <span className="text-slate-800">{hongKongTime}</span>
           </div>
         </div>
-        <p className="mt-3 text-gray-600">Choose your route and location to check the next 3 arrivals</p>
+        <p className="mt-3 text-slate-600">Choose your route and location to check the next 3 arrivals</p>
       </div>
 
-      <div className="rounded-[28px] border border-slate-200 bg-white/85 p-3 shadow-[0_18px_60px_rgba(15,23,42,0.08)] backdrop-blur-sm space-y-4">
+      <div className="rounded-[28px] border border-slate-300 bg-white/92 p-3 shadow-[0_18px_60px_rgba(15,23,42,0.10)] backdrop-blur-sm space-y-4">
         <form onSubmit={fetchArrivals} className="flex flex-col gap-3">
-          <label htmlFor="bus-number" className="text-sm font-medium text-slate-600">
+          <label htmlFor="bus-number" className="text-sm font-medium text-slate-700">
             Bus Number
           </label>
           <input
@@ -298,23 +299,12 @@ function App() {
             value={busNumber}
             onChange={(e) => setBusNumber(e.target.value)}
             placeholder="Enter route like 8, 88, or 8P"
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-[15px] text-slate-800 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100"
+            className="w-full rounded-2xl border border-slate-300 bg-slate-50 px-4 py-3 text-[15px] text-slate-900 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-2 focus:ring-blue-100"
             disabled={loading}
           />
 
-          <div className="flex items-center justify-between gap-3">
-            <p className="text-sm text-slate-600">Your GPS Location</p>
-            <button
-              type="button"
-              onClick={handleDetectLocation}
-              className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
-              disabled={locating || loading}
-            >
-              {locating ? 'Detecting...' : 'Detect Location'}
-            </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:gap-3">
+            <p className="text-sm text-slate-700 whitespace-nowrap">Your GPS Location</p>
             <input
               type="text"
               value={latitude}
@@ -323,7 +313,7 @@ function App() {
                 setNearestStopLabel('');
               }}
               placeholder="Latitude"
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-300 focus:bg-white"
+              className="w-full min-w-0 flex-1 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-300 focus:bg-white"
               disabled={loading}
             />
             <input
@@ -334,38 +324,46 @@ function App() {
                 setNearestStopLabel('');
               }}
               placeholder="Longitude"
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-300 focus:bg-white"
+              className="w-full min-w-0 flex-1 rounded-xl border border-slate-300 bg-slate-50 px-3 py-2 text-sm text-slate-800 outline-none focus:border-blue-300 focus:bg-white"
               disabled={loading}
             />
+            <button
+              type="button"
+              onClick={handleDetectLocation}
+              className="w-full shrink-0 rounded-xl border border-slate-400 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100 disabled:opacity-50 lg:w-auto"
+              disabled={locating || loading}
+            >
+              {locating ? 'Detecting...' : 'Detect Location'}
+            </button>
           </div>
 
           {latitude && longitude && (
-            <div className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-700">
+            <div className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">
               Location selected: {nearestStopLabel || 'Nearest stop pending'}
             </div>
           )}
 
           <div className="flex flex-col gap-3 sm:flex-row sm:items-stretch">
-            <div className="flex-1 rounded-2xl border border-slate-200 bg-slate-50 p-3">
+            <div className="flex-1 rounded-2xl border border-slate-300 bg-slate-50 p-3">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <p className="text-sm text-slate-600">Pick location from map</p>
+                <p className="text-sm text-slate-700">Pick location from map</p>
                 <button
                   type="button"
                   onClick={() => setIsMapOpen(true)}
-                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100"
+                  className="rounded-xl border border-slate-400 bg-white px-3 py-2 text-sm text-slate-800 transition hover:bg-slate-100"
                   disabled={loading}
                 >
                   Open Map
                 </button>
               </div>
-              <p className="mt-2 text-xs text-slate-500">
+              <p className="mt-2 text-xs text-slate-600">
                 Tap a point on the map to select location. The map window will close automatically.
               </p>
             </div>
 
             <button
               type="submit"
-              className="min-h-[5.5rem] w-full rounded-2xl bg-slate-900 px-6 py-3 text-[15px] font-medium text-white shadow-sm transition hover:bg-slate-700 disabled:bg-slate-300 sm:w-28 sm:self-stretch"
+              className="min-h-[5.5rem] w-full rounded-2xl bg-slate-950 px-6 py-3 text-[15px] font-medium text-white shadow-sm transition hover:bg-slate-800 disabled:bg-slate-300 sm:w-28 sm:self-stretch"
               disabled={loading || !busNumber.trim()}
             >
               {loading ? <span className="animate-spin">Searching...</span> : 'Search'}
@@ -375,7 +373,7 @@ function App() {
       </div>
 
       {error && (
-        <div className="mt-4 rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-sm">
+        <div className="mt-4 rounded-2xl border border-rose-300 bg-rose-50 px-4 py-3 text-sm text-rose-700 shadow-sm">
           {error}
         </div>
       )}
@@ -384,15 +382,15 @@ function App() {
         <div className="mt-6 space-y-3">
           <h2 className="text-xl font-semibold text-gray-800">Next Arrivals</h2>
           {nearestStopInfo && (
-            <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
+            <div className="rounded-2xl border border-sky-300 bg-sky-50 px-4 py-3 text-sm text-sky-800">
               {operator && <p className="mb-1 font-medium">Operator: {operator}</p>}
               <p className="font-medium">Nearest Stop: {nearestStopInfo.stopNameEn || nearestStopInfo.stopNameTc}</p>
               <p className="text-sky-700">Distance: {nearestStopInfo.distanceKm} km</p>
             </div>
           )}
-          <div className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+          <div className="overflow-hidden rounded-2xl border border-slate-300 bg-white shadow-sm">
             <table className="w-full table-fixed text-left text-sm">
-              <thead className="bg-slate-50 text-slate-500">
+              <thead className="bg-slate-100 text-slate-600">
                 <tr>
                   <th className="px-4 py-3 font-medium">Company</th>
                   <th className="px-4 py-3 font-medium">Bus Number</th>
