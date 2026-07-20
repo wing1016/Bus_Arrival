@@ -10,9 +10,48 @@ const formatArrivalTime = (timeString) => {
   return `${normalizedHours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')} ${ampm}`;
 };
 
+const getHongKongCurrentMinutes = () => {
+  const nowParts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: 'Asia/Hong_Kong',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).formatToParts(new Date());
+
+  const hour = Number(nowParts.find((part) => part.type === 'hour')?.value);
+  const minute = Number(nowParts.find((part) => part.type === 'minute')?.value);
+
+  if (!Number.isFinite(hour) || !Number.isFinite(minute)) {
+    return null;
+  }
+
+  return hour * 60 + minute;
+};
+
+const formatTimeLeft = (timeString) => {
+  const [arrivalHour, arrivalMinute] = timeString.split(':').map(Number);
+  if (!Number.isFinite(arrivalHour) || !Number.isFinite(arrivalMinute)) {
+    return '-';
+  }
+
+  const currentMinutes = getHongKongCurrentMinutes();
+  if (currentMinutes === null) {
+    return '-';
+  }
+
+  const arrivalMinutes = arrivalHour * 60 + arrivalMinute;
+  let minutesLeft = arrivalMinutes - currentMinutes;
+  if (minutesLeft < 0) {
+    minutesLeft += 24 * 60;
+  }
+
+  return minutesLeft <= 0 ? 'Due' : `${minutesLeft} min`;
+};
+
 function App() {
   const [busNumber, setBusNumber] = useState('');
   const [arrivals, setArrivals] = useState([]);
+  const [resultBusNumber, setResultBusNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState('');
@@ -174,6 +213,7 @@ function App() {
     if (!trimmedBusNumber) {
       setError('Please enter a bus number to check the next arrivals.');
       setArrivals([]);
+      setResultBusNumber('');
       setNearestStopInfo(null);
       setOperator('');
       return;
@@ -182,6 +222,7 @@ function App() {
     if (!isValidHongKongBusNumber(trimmedBusNumber)) {
       setError('That does not look like a Hong Kong bus route number. Please try values like 8, 88, or 8P.');
       setArrivals([]);
+      setResultBusNumber('');
       setNearestStopInfo(null);
       setOperator('');
       return;
@@ -190,6 +231,7 @@ function App() {
     if (!latitude || !longitude) {
       setError('Please detect your device location or choose your location on the map first.');
       setArrivals([]);
+      setResultBusNumber('');
       setNearestStopInfo(null);
       setOperator('');
       return;
@@ -223,6 +265,7 @@ function App() {
       }
       const data = await response.json();
       setArrivals(data.arrivalTimes || []);
+      setResultBusNumber(data.busNumber || trimmedBusNumber);
       setNearestStopInfo(data.nearestStop || null);
       setOperator(data.operator || '');
     } catch (err) {
@@ -235,6 +278,7 @@ function App() {
       }
 
       setNearestStopInfo(null);
+      setResultBusNumber('');
       setOperator('');
     } finally {
       setLoading(false);
@@ -269,41 +313,40 @@ function App() {
             disabled={loading}
           />
 
-          <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <p className="text-sm text-slate-600">Your GPS Location</p>
+            <div className="flex flex-1 min-w-[220px] items-center gap-2">
+              <input
+                type="text"
+                value={latitude}
+                onChange={(e) => {
+                  setLatitude(e.target.value);
+                  setNearestStopLabel('');
+                }}
+                placeholder="Latitude"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-300 focus:bg-white"
+                disabled={loading}
+              />
+              <input
+                type="text"
+                value={longitude}
+                onChange={(e) => {
+                  setLongitude(e.target.value);
+                  setNearestStopLabel('');
+                }}
+                placeholder="Longitude"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-300 focus:bg-white"
+                disabled={loading}
+              />
+            </div>
             <button
               type="button"
               onClick={handleDetectLocation}
-              className="rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
+              className="sm:ml-auto rounded-xl border border-slate-300 px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100 disabled:opacity-50"
               disabled={locating || loading}
             >
-              {locating ? 'Detecting...' : 'Use Device Location'}
+              {locating ? 'Detecting...' : 'Detect Location'}
             </button>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <input
-              type="text"
-              value={latitude}
-              onChange={(e) => {
-                setLatitude(e.target.value);
-                setNearestStopLabel('');
-              }}
-              placeholder="Latitude"
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-300 focus:bg-white"
-              disabled={loading}
-            />
-            <input
-              type="text"
-              value={longitude}
-              onChange={(e) => {
-                setLongitude(e.target.value);
-                setNearestStopLabel('');
-              }}
-              placeholder="Longitude"
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-300 focus:bg-white"
-              disabled={loading}
-            />
           </div>
 
           {latitude && longitude && (
@@ -312,30 +355,29 @@ function App() {
             </div>
           )}
 
-          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-slate-600">Pick location from map</p>
-              <button
-                type="button"
-                onClick={() => setIsMapOpen(true)}
-                className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100"
-                disabled={loading}
-              >
-                Open Map
-              </button>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto] sm:items-stretch">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 px-3 py-2">
+              <div className="flex items-center justify-between gap-3">
+                <p className="text-sm text-slate-600">Pick location from map</p>
+                <button
+                  type="button"
+                  onClick={() => setIsMapOpen(true)}
+                  className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm text-slate-700 transition hover:bg-slate-100"
+                  disabled={loading}
+                >
+                  Open Map
+                </button>
+              </div>
             </div>
-            <p className="mt-2 text-xs text-slate-500">
-              Tap a point on the map to select location. The map window will close automatically.
-            </p>
-          </div>
 
-          <button
-            type="submit"
-            className="w-full rounded-2xl bg-slate-900 px-6 py-3 text-[15px] font-medium text-white shadow-sm transition hover:bg-slate-700 disabled:bg-slate-300"
-            disabled={loading || !busNumber.trim()}
-          >
-            {loading ? <span className="animate-spin">Searching...</span> : 'Search'}
-          </button>
+            <button
+              type="submit"
+              className="h-full min-h-[52px] rounded-2xl bg-slate-900 px-6 py-3 text-[15px] font-medium text-white shadow-sm transition hover:bg-slate-700 disabled:bg-slate-300 sm:min-w-[120px]"
+              disabled={loading || !busNumber.trim()}
+            >
+              {loading ? <span className="animate-spin">Searching...</span> : 'Search'}
+            </button>
+          </div>
         </form>
       </div>
 
@@ -355,13 +397,25 @@ function App() {
               <p className="text-sky-700">Distance: {nearestStopInfo.distanceKm} km</p>
             </div>
           )}
-          <ol className="space-y-2">
-            {arrivals.map((time, index) => (
-              <li key={index} className="text-lg text-gray-700">
-                {formatArrivalTime(time)}
-              </li>
-            ))}
-          </ol>
+          <div className="overflow-hidden rounded-2xl border border-slate-200">
+            <div className="grid grid-cols-3 bg-slate-100 px-4 py-2 text-xs font-semibold uppercase tracking-wide text-slate-600">
+              <span>Company</span>
+              <span>Bus Number</span>
+              <span>Arrives In</span>
+            </div>
+            <ol>
+              {arrivals.map((time, index) => (
+                <li key={index} className="grid grid-cols-3 border-t border-slate-200 px-4 py-3 text-base text-slate-700">
+                  <span className="font-medium">{operator || '-'}</span>
+                  <span>{resultBusNumber || busNumber.trim().toUpperCase() || '-'}</span>
+                  <span>
+                    <span className="block font-medium">{formatTimeLeft(time)}</span>
+                    <span className="block text-xs text-slate-500">{formatArrivalTime(time)}</span>
+                  </span>
+                </li>
+              ))}
+            </ol>
+          </div>
         </div>
       )}
 
