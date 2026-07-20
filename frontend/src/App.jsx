@@ -420,8 +420,14 @@ function App() {
       )}
 
       {isMapOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4">
-          <div className="h-[75vh] w-[75vw] max-w-none rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/50 p-4"
+          onClick={() => setIsMapOpen(false)}
+        >
+          <div
+            className="h-[80vh] w-[80vw] max-w-none rounded-3xl border border-slate-200 bg-white p-4 shadow-2xl"
+            onClick={(event) => event.stopPropagation()}
+          >
             <div className="mb-3 flex items-center justify-between">
               <h3 className="text-lg font-semibold text-slate-800">Choose Your Location</h3>
               <button
@@ -432,7 +438,7 @@ function App() {
                 Close
               </button>
             </div>
-            <div ref={mapNodeRef} className="h-[calc(75vh-9rem)] w-full rounded-2xl border border-slate-200" />
+            <div ref={mapNodeRef} className="h-[calc(80vh-9rem)] w-full rounded-2xl border border-slate-200" />
             <p className="mt-3 text-sm text-slate-500">Click on the map to confirm location and close this window.</p>
           </div>
         </div>
