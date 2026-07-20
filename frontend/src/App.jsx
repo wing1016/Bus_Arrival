@@ -62,6 +62,7 @@ function App() {
   const [nearestStopInfo, setNearestStopInfo] = useState(null);
   const [nearestStopLabel, setNearestStopLabel] = useState('');
   const [operator, setOperator] = useState('');
+  const [prefetchedLocation, setPrefetchedLocation] = useState(null);
 
   const mapNodeRef = useRef(null);
   const mapInstanceRef = useRef(null);
@@ -96,10 +97,19 @@ function App() {
       return;
     }
 
-    const map = leaflet.map(mapNodeRef.current).setView(
-      [DEFAULT_HK_LOCATION.latitude, DEFAULT_HK_LOCATION.longitude],
-      12
-    );
+    const parsedLatitude = Number(latitude);
+    const parsedLongitude = Number(longitude);
+    const hasInputLocation = Number.isFinite(parsedLatitude) && Number.isFinite(parsedLongitude);
+
+    const initialLatitude = hasInputLocation
+      ? parsedLatitude
+      : prefetchedLocation?.latitude ?? DEFAULT_HK_LOCATION.latitude;
+    const initialLongitude = hasInputLocation
+      ? parsedLongitude
+      : prefetchedLocation?.longitude ?? DEFAULT_HK_LOCATION.longitude;
+    const initialZoom = prefetchedLocation ? 17 : hasInputLocation ? 15 : 12;
+
+    const map = leaflet.map(mapNodeRef.current).setView([initialLatitude, initialLongitude], initialZoom);
 
     leaflet
       .tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
@@ -107,6 +117,10 @@ function App() {
         attribution: '&copy; OpenStreetMap contributors',
       })
       .addTo(map);
+
+    if (hasInputLocation || prefetchedLocation) {
+      markerRef.current = leaflet.marker([initialLatitude, initialLongitude]).addTo(map);
+    }
 
     map.on('click', (event) => {
       const { lat, lng } = event.latlng;
@@ -132,7 +146,28 @@ function App() {
         markerRef.current = null;
       }
     };
-  }, [isMapOpen]);
+  }, [isMapOpen, latitude, longitude, prefetchedLocation]);
+
+  useEffect(() => {
+    if (!navigator.geolocation) {
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+
+        setPrefetchedLocation({ latitude: lat, longitude: lng });
+        setLatitude(lat.toFixed(6));
+        setLongitude(lng.toFixed(6));
+      },
+      () => {
+        setPrefetchedLocation(null);
+      },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }, []);
 
   const updateNearestStopByLocation = async (latValue, lngValue) => {
     setNearestStopLabel('Loading nearest stop...');
@@ -319,24 +354,16 @@ function App() {
               <input
                 type="text"
                 value={latitude}
-                onChange={(e) => {
-                  setLatitude(e.target.value);
-                  setNearestStopLabel('');
-                }}
                 placeholder="Latitude"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-300 focus:bg-white"
-                disabled={loading}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none"
+                disabled
               />
               <input
                 type="text"
                 value={longitude}
-                onChange={(e) => {
-                  setLongitude(e.target.value);
-                  setNearestStopLabel('');
-                }}
                 placeholder="Longitude"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none focus:border-blue-300 focus:bg-white"
-                disabled={loading}
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 outline-none"
+                disabled
               />
             </div>
             <button
