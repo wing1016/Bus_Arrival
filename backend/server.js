@@ -197,14 +197,17 @@ async function findNearestKmbStopForRoute(route, userLat, userLng) {
   let nearestCandidate = null;
 
   for (const routeItem of matchingRoutes) {
-    const relevantRouteStops = routeStopList.data.filter(
-      (routeStop) =>
-        routeStop.route === routeItem.route &&
-        routeStop.bound === routeItem.bound &&
-        String(routeStop.service_type) === String(routeItem.service_type)
-    );
+    const relevantRouteStops = routeStopList.data
+      .filter(
+        (routeStop) =>
+          routeStop.route === routeItem.route &&
+          routeStop.bound === routeItem.bound &&
+          String(routeStop.service_type) === String(routeItem.service_type)
+      )
+      .sort((a, b) => Number(a.seq) - Number(b.seq));
 
-    for (const routeStop of relevantRouteStops) {
+    for (let index = 0; index < relevantRouteStops.length; index += 1) {
+      const routeStop = relevantRouteStops[index];
       const stop = stopMap.get(routeStop.stop);
       if (!stop) {
         continue;
@@ -219,6 +222,9 @@ async function findNearestKmbStopForRoute(route, userLat, userLng) {
       const distanceKm = haversineDistanceKm(userLat, userLng, stopLat, stopLng);
 
       if (!nearestCandidate || distanceKm < nearestCandidate.distanceKm) {
+        const nextRouteStop = relevantRouteStops[index + 1];
+        const nextStop = nextRouteStop ? stopMap.get(nextRouteStop.stop) : null;
+
         nearestCandidate = {
           stopId: stop.stop,
           stopNameEn: stop.name_en,
@@ -226,6 +232,8 @@ async function findNearestKmbStopForRoute(route, userLat, userLng) {
           route: routeItem.route,
           bound: routeItem.bound,
           serviceType: routeItem.service_type,
+          nextStopNameEn: nextStop?.name_en || '',
+          nextStopNameTc: nextStop?.name_tc || '',
           distanceKm,
         };
       }
@@ -305,7 +313,10 @@ async function findNearestCitybusStopForRoute(route, userLat, userLng) {
       `https://rt.data.gov.hk/v2/transport/citybus/route-stop/CTB/${route}/${dirPath}`
     );
 
-    for (const routeStop of routeStopResponse.data) {
+    const routeStops = [...routeStopResponse.data].sort((a, b) => Number(a.seq) - Number(b.seq));
+
+    for (let index = 0; index < routeStops.length; index += 1) {
+      const routeStop = routeStops[index];
       const stop = await getCitybusStop(routeStop.stop, stopCache);
       const stopLat = Number(stop.lat);
       const stopLng = Number(stop.long);
@@ -317,12 +328,17 @@ async function findNearestCitybusStopForRoute(route, userLat, userLng) {
       const distanceKm = haversineDistanceKm(userLat, userLng, stopLat, stopLng);
 
       if (!nearestCandidate || distanceKm < nearestCandidate.distanceKm) {
+        const nextRouteStop = routeStops[index + 1];
+        const nextStop = nextRouteStop ? await getCitybusStop(nextRouteStop.stop, stopCache) : null;
+
         nearestCandidate = {
           stopId: stop.stop,
           stopNameEn: stop.name_en,
           stopNameTc: stop.name_tc,
           route,
           dirCode,
+          nextStopNameEn: nextStop?.name_en || '',
+          nextStopNameTc: nextStop?.name_tc || '',
           distanceKm,
         };
       }
@@ -466,6 +482,7 @@ app.get('/api/bus-arrivals', authenticateToken, async (req, res) => {
     return res.json({
       busNumber: normalizedBusNumber,
       operator,
+      nextStopName: nearestStop.nextStopNameEn || nearestStop.nextStopNameTc || '',
       arrivalTimes,
       nearestStop: {
         stopId: nearestStop.stopId,

@@ -135,11 +135,13 @@ const formatTimeLeft = (timeString) => {
 
   const arrivalMinutes = arrivalHour * 60 + arrivalMinute;
   let minutesLeft = arrivalMinutes - currentMinutes;
-  if (minutesLeft < 0) {
+
+  // Treat nearby negative values as expired entries, but allow true cross-midnight services.
+  if (minutesLeft < 0 && minutesLeft <= -720) {
     minutesLeft += 24 * 60;
   }
 
-  return minutesLeft <= 0 ? 'Due' : `${minutesLeft} min`;
+  return minutesLeft < 0 ? 'Expired' : minutesLeft === 0 ? 'Due' : `${minutesLeft} min`;
 };
 
 function App() {
@@ -156,6 +158,7 @@ function App() {
   const [nearestStopInfo, setNearestStopInfo] = useState(null);
   const [nearestStopLabel, setNearestStopLabel] = useState('');
   const [operator, setOperator] = useState('');
+  const [nextStopName, setNextStopName] = useState('');
   const [prefetchedLocation, setPrefetchedLocation] = useState(null);
   const [weatherSummary, setWeatherSummary] = useState('Loading weather...');
 
@@ -248,7 +251,7 @@ function App() {
         const humidity = data?.humidity?.data?.[0]?.value;
         const humidityText = Number.isFinite(humidity) ? `Humidity ${humidity}%` : null;
         const temperatureText = nearestStation
-          ? `${nearestStation.value}${nearestStation.unit || 'C'}${nearestStation.unit === 'C' ? '' : ''}`
+          ? `${nearestStation.value}${nearestStation.unit === 'C' ? '°C' : nearestStation.unit || ''}`
           : null;
 
         const summaryParts = [weatherText];
@@ -259,8 +262,7 @@ function App() {
           summaryParts.push(humidityText);
         }
 
-        const nearLabel = nearestStation?.place ? `Near ${nearestStation.place}` : 'Hong Kong';
-        setWeatherSummary(`${nearLabel}: ${summaryParts.join(' | ')}`);
+        setWeatherSummary(summaryParts.join(' | '));
       } catch (err) {
         if (err?.name === 'AbortError') {
           return;
@@ -434,6 +436,7 @@ function App() {
       setResultBusNumber('');
       setNearestStopInfo(null);
       setOperator('');
+      setNextStopName('');
       return;
     }
 
@@ -443,6 +446,7 @@ function App() {
       setResultBusNumber('');
       setNearestStopInfo(null);
       setOperator('');
+      setNextStopName('');
       return;
     }
 
@@ -452,6 +456,7 @@ function App() {
       setResultBusNumber('');
       setNearestStopInfo(null);
       setOperator('');
+      setNextStopName('');
       return;
     }
 
@@ -486,6 +491,7 @@ function App() {
       setResultBusNumber(data.busNumber || trimmedBusNumber);
       setNearestStopInfo(data.nearestStop || null);
       setOperator(data.operator || '');
+      setNextStopName(data.nextStopName || '');
     } catch (err) {
       console.error('Error fetching bus arrivals:', err);
 
@@ -498,10 +504,13 @@ function App() {
       setNearestStopInfo(null);
       setResultBusNumber('');
       setOperator('');
+      setNextStopName('');
     } finally {
       setLoading(false);
     }
   };
+
+  const visibleArrivals = arrivals.filter((time) => formatTimeLeft(time) !== 'Expired');
 
   return (
     <div className="mx-auto w-[92vw] p-4 font-sans lg:w-[80vw]">
@@ -510,8 +519,7 @@ function App() {
           <h1 className="text-3xl font-bold text-gray-900">Vibe Bus Arrival</h1>
           <div className="flex flex-col items-start gap-1 sm:items-end sm:shrink-0">
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-4 py-2 text-[13px] font-medium tracking-[0.15em] text-slate-600 shadow-[0_8px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm">
-              <span className="text-[11px] uppercase tracking-[0.24em] text-slate-400">HK</span>
-              <span className="text-slate-800">{hongKongTime}</span>
+              <span className="text-[14.3px] text-slate-800">{hongKongTime}</span>
             </div>
             <p className="max-w-[28rem] text-xs text-slate-600">{weatherSummary}</p>
           </div>
@@ -605,13 +613,13 @@ function App() {
         <section className="rounded-[28px] border border-slate-300/80 bg-white/90 p-4 shadow-[16px_18px_36px_-14px_rgba(15,23,42,0.42)] backdrop-blur-sm space-y-3 lg:min-h-[24rem]">
           <h2 className="text-xl font-semibold text-gray-800">Next Arrivals</h2>
 
-          {arrivals.length > 0 ? (
+          {visibleArrivals.length > 0 ? (
             <>
               {nearestStopInfo && (
                 <div className="rounded-2xl border border-sky-200 bg-sky-50 px-4 py-3 text-sm text-sky-800">
                   {operator && <p className="mb-1 font-medium">Operator: {operator}</p>}
                   <p className="font-medium">Nearest Stop: {nearestStopInfo.stopNameEn || nearestStopInfo.stopNameTc}</p>
-                  <p className="text-sky-700">Distance: {nearestStopInfo.distanceKm} km</p>
+                  <p className="text-sky-700">Distance: {Math.round(nearestStopInfo.distanceKm * 1000)} m</p>
                 </div>
               )}
 
@@ -622,10 +630,13 @@ function App() {
                   <span>Arrives In</span>
                 </div>
                 <ol>
-                  {arrivals.map((time, index) => (
+                  {visibleArrivals.map((time, index) => (
                     <li key={index} className="grid grid-cols-3 border-t border-slate-200 px-4 py-3 text-base text-slate-700">
                       <span className="font-medium">{operator || '-'}</span>
-                      <span>{resultBusNumber || busNumber.trim().toUpperCase() || '-'}</span>
+                      <span>
+                        <span className="block">{resultBusNumber || busNumber.trim().toUpperCase() || '-'}</span>
+                        {nextStopName && <span className="block text-[11.04px] text-slate-500">Next stop: {nextStopName}</span>}
+                      </span>
                       <span>
                         <span className="block font-medium">{formatTimeLeft(time)}</span>
                         <span className="block text-xs text-slate-500">{formatArrivalTime(time)}</span>
