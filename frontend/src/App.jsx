@@ -148,6 +148,7 @@ function App() {
   const [busNumber, setBusNumber] = useState('');
   const [arrivals, setArrivals] = useState([]);
   const [resultBusNumber, setResultBusNumber] = useState('');
+  const [activeSearchBusNumber, setActiveSearchBusNumber] = useState('');
   const [loading, setLoading] = useState(false);
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState('');
@@ -166,6 +167,40 @@ function App() {
   const mapInstanceRef = useRef(null);
   const markerRef = useRef(null);
   const busNumberInputRef = useRef(null);
+
+  const requestArrivalData = async (requestedBusNumber, latValue, lngValue) => {
+    const params = new URLSearchParams({
+      busNumber: requestedBusNumber,
+      latitude: String(latValue),
+      longitude: String(lngValue),
+    });
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000);
+
+    try {
+      const response = await fetch(`/api/bus-arrivals?${params.toString()}`, {
+        signal: controller.signal,
+      });
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.error || 'Network response was not ok');
+      }
+
+      return response.json();
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
+
+  const applyArrivalData = (data, fallbackBusNumber) => {
+    setArrivals(data.arrivalTimes || []);
+    setResultBusNumber(data.busNumber || fallbackBusNumber);
+    setNearestStopInfo(data.nearestStop || null);
+    setOperator(data.operator || '');
+    setNextStopName(data.nextStopName || '');
+  };
 
   useEffect(() => {
     const updateClock = () => {
@@ -437,6 +472,7 @@ function App() {
       setNearestStopInfo(null);
       setOperator('');
       setNextStopName('');
+      setActiveSearchBusNumber('');
       return;
     }
 
@@ -447,6 +483,7 @@ function App() {
       setNearestStopInfo(null);
       setOperator('');
       setNextStopName('');
+      setActiveSearchBusNumber('');
       return;
     }
 
@@ -457,6 +494,7 @@ function App() {
       setNearestStopInfo(null);
       setOperator('');
       setNextStopName('');
+      setActiveSearchBusNumber('');
       return;
     }
 
@@ -464,34 +502,9 @@ function App() {
     setError('');
 
     try {
-      const params = new URLSearchParams({
-        busNumber: trimmedBusNumber,
-        latitude,
-        longitude,
-      });
-
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000);
-      let response;
-
-      try {
-        response = await fetch(`/api/bus-arrivals?${params.toString()}`, {
-          signal: controller.signal,
-        });
-      } finally {
-        clearTimeout(timeoutId);
-      }
-
-      if (!response.ok) {
-        const data = await response.json().catch(() => ({}));
-        throw new Error(data.error || 'Network response was not ok');
-      }
-      const data = await response.json();
-      setArrivals(data.arrivalTimes || []);
-      setResultBusNumber(data.busNumber || trimmedBusNumber);
-      setNearestStopInfo(data.nearestStop || null);
-      setOperator(data.operator || '');
-      setNextStopName(data.nextStopName || '');
+      const data = await requestArrivalData(trimmedBusNumber, latitude, longitude);
+      applyArrivalData(data, trimmedBusNumber);
+      setActiveSearchBusNumber(trimmedBusNumber);
     } catch (err) {
       console.error('Error fetching bus arrivals:', err);
 
@@ -505,10 +518,46 @@ function App() {
       setResultBusNumber('');
       setOperator('');
       setNextStopName('');
+      setActiveSearchBusNumber('');
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const trimmedActiveBusNumber = activeSearchBusNumber.trim();
+    const latValue = Number(latitude);
+    const lngValue = Number(longitude);
+
+    if (!trimmedActiveBusNumber || !Number.isFinite(latValue) || !Number.isFinite(lngValue)) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const refreshArrivals = async () => {
+      try {
+        const data = await requestArrivalData(trimmedActiveBusNumber, latitude, longitude);
+        if (cancelled) {
+          return;
+        }
+
+        applyArrivalData(data, trimmedActiveBusNumber);
+      } catch (err) {
+        if (err && err.name === 'AbortError') {
+          return;
+        }
+
+        console.error('Error refreshing bus arrivals:', err);
+      }
+    };
+
+    const timer = setInterval(refreshArrivals, 120000);
+    return () => {
+      cancelled = true;
+      clearInterval(timer);
+    };
+  }, [activeSearchBusNumber, latitude, longitude]);
 
   const visibleArrivals = arrivals.filter((time) => formatTimeLeft(time) !== 'Expired');
 
@@ -516,7 +565,7 @@ function App() {
     <div className="mx-auto w-[92vw] p-4 font-sans lg:w-[80vw]">
       <div className="mb-8">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-3xl font-bold text-gray-900">Vibe Bus Arrival</h1>
+          <h1 className="text-3xl font-bold text-gray-900">Bus Arrival Information</h1>
           <div className="flex flex-col items-start gap-1 sm:items-end sm:shrink-0">
             <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white/85 px-4 py-2 text-[13px] font-medium tracking-[0.15em] text-slate-600 shadow-[0_8px_24px_rgba(15,23,42,0.08)] backdrop-blur-sm">
               <span className="text-[14.3px] text-slate-800">{hongKongTime}</span>
